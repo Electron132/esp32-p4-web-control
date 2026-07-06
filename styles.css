@@ -668,40 +668,6 @@ canvas {
   border-color: var(--primary);
 }
 
-.chat-form {
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.chat-reply {
-  min-height: 36px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-raised);
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.chat-reply[data-tone="connected"] {
-  color: #166534;
-  background: #eefbf2;
-  border-color: #b7e3c2;
-}
-
-.chat-reply[data-tone="warning"] {
-  color: #92400e;
-  background: #fff8e6;
-  border-color: #f3d08a;
-}
-
-.chat-reply[data-tone="danger"] {
-  color: #991b1b;
-  background: #fff1f1;
-  border-color: #f0b4b4;
-}
-
 .log-list {
   display: flex;
   flex-direction: column;
