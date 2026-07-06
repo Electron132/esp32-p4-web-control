@@ -51,6 +51,7 @@ const state = {
   lastCommandAt: 0,
   lastStatusAt: 0,
   lastStatusOk: true,
+  lastChatSeq: 0,
   status: {
     led: false,
     rgb: { r: 0, g: 0, b: 0 },
@@ -71,6 +72,7 @@ const state = {
     bleReady: null,
     bleConnected: null,
     uptimeMs: null,
+    chat: null,
   },
 };
 
@@ -112,6 +114,10 @@ const els = {
   commandForm: $("commandForm"),
   commandInput: $("commandInput"),
   commandSendBtn: $("commandSendBtn"),
+  chatForm: $("chatForm"),
+  chatInput: $("chatInput"),
+  chatSendBtn: $("chatSendBtn"),
+  chatReply: $("chatReply"),
   logList: $("logList"),
   diagnosticsBtn: $("diagnosticsBtn"),
   recordBtn: $("recordBtn"),
@@ -191,6 +197,13 @@ function sanitizeCommand(command) {
   if (command.cmd === "read") {
     return { cmd: "read" };
   }
+  if (command.cmd === "chat") {
+    const text = String(command.text || "").trim();
+    if (text.length > 0 && text.length <= 120) {
+      return { cmd: "chat", text };
+    }
+    return null;
+  }
   return null;
 }
 
@@ -208,7 +221,7 @@ function parseProtocolCommand(text) {
 
   const command = sanitizeCommand(payload);
   if (!command) {
-    throw new Error("只支持 led、rgb、buzzer、servo、read 命令");
+    throw new Error("只支持 led、rgb、buzzer、servo、read、chat 命令");
   }
   return command;
 }
@@ -700,6 +713,29 @@ function updateSelfTestUi() {
   els.selfTestBtn.textContent = state.selfTestRunning ? "自检中" : "安全自检";
 }
 
+function updateChatUi() {
+  if (!els.chatSendBtn || !els.chatReply) {
+    return;
+  }
+
+  const chat = state.status.chat || {};
+  els.chatSendBtn.disabled = !isReady() || Boolean(chat.busy);
+
+  if (chat.busy) {
+    els.chatReply.textContent = "云端大模型思考中...";
+    els.chatReply.dataset.tone = "warning";
+  } else if (chat.reply) {
+    els.chatReply.textContent = chat.reply;
+    els.chatReply.dataset.tone = "connected";
+  } else if (chat.error) {
+    els.chatReply.textContent = `对话失败：${chat.error}`;
+    els.chatReply.dataset.tone = "danger";
+  } else {
+    els.chatReply.textContent = "等待蓝牙对话。";
+    els.chatReply.dataset.tone = "neutral";
+  }
+}
+
 function updateBusyUi() {
   if (state.pendingGattOperations > 0 && (state.connected || state.demo)) {
     els.latencyText.textContent = "同步中...";
@@ -938,6 +974,9 @@ function describeCommand(command) {
   if (command.cmd === "servo") {
     return `舵机转到 ${command.angle}°`;
   }
+  if (command.cmd === "chat") {
+    return `蓝牙对话：${command.text}`;
+  }
   return command.cmd;
 }
 
@@ -1063,6 +1102,19 @@ function applyStatus(payload) {
   if (Number.isFinite(payload.uptimeMs)) {
     state.status.uptimeMs = payload.uptimeMs;
   }
+  if (payload.chat && typeof payload.chat === "object") {
+    state.status.chat = payload.chat;
+    if (Number.isFinite(payload.chat.seq) && payload.chat.seq !== state.lastChatSeq) {
+      state.lastChatSeq = payload.chat.seq;
+      if (payload.chat.busy) {
+        log("info", "蓝牙对话已提交，等待云端大模型回复。");
+      } else if (payload.chat.reply) {
+        log("ok", `云端回复：${payload.chat.reply}`);
+      } else if (payload.chat.error) {
+        log("error", `蓝牙对话失败：${payload.chat.error}`);
+      }
+    }
+  }
   if (state.lastCommandAt > 0) {
     els.latencyText.textContent = `${Date.now() - state.lastCommandAt} ms`;
     state.lastCommandAt = 0;
@@ -1072,6 +1124,7 @@ function applyStatus(payload) {
   updateFreshnessUi();
   updateUptimeUi();
   updateProtocolUi();
+  updateChatUi();
 }
 
 async function readStatus(options = {}) {
@@ -1129,7 +1182,8 @@ function looksLikeFullStatus(payload) {
     Number.isFinite(payload.servo) ||
     Number.isFinite(payload.temperature) ||
     Number.isFinite(payload.humidity) ||
-    typeof payload.dhtStatus === "string"
+    typeof payload.dhtStatus === "string" ||
+    Boolean(payload.chat)
   );
 }
 
@@ -1225,6 +1279,25 @@ async function sendCommand(command, options = {}) {
 
 function sendCommandFromUi(command, options = {}) {
   sendCommand(command, options).catch(() => {});
+}
+
+function sendChatFromUi() {
+  const text = els.chatInput.value.trim();
+  if (!text) {
+    log("warn", "请输入要发送给云端大模型的内容。");
+    els.chatInput.focus();
+    return;
+  }
+
+  state.status.chat = {
+    ...(state.status.chat || {}),
+    busy: true,
+    reply: "",
+    error: "",
+  };
+  updateChatUi();
+  log("info", `蓝牙对话：${text}`);
+  sendCommandFromUi({ cmd: "chat", text }, { record: false });
 }
 
 async function emergencyStop() {
@@ -1424,6 +1497,14 @@ async function demoApply(command, options = {}) {
     state.status.ir = { active: Math.sin(phase * 2.3) > 0.72, edges: Math.round((Math.sin(phase * 2.3) + 1) * 8), level: 1 };
     state.status.protocol = 1;
     state.status.device = "Virtual ESP32-P4";
+  } else if (command.cmd === "chat") {
+    state.status.chat = {
+      busy: false,
+      ok: true,
+      seq: state.lastChatSeq + 1,
+      reply: `演示回复：${command.text}`,
+      error: "",
+    };
   }
 
   applyStatus({ ok: true, ...state.status, uptimeMs: Math.round(performance.now() - bootedAt) });
@@ -1722,6 +1803,10 @@ function bindEvents() {
       els.commandInput.focus();
     }
   });
+  els.chatForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    sendChatFromUi();
+  });
   document.querySelectorAll("[data-command-preset]").forEach((button) => {
     button.addEventListener("click", () => {
       try {
@@ -1821,6 +1906,7 @@ function boot() {
   updateConnectionUi();
   updateDeviceUi();
   updateWakeLockUi();
+  updateChatUi();
   renderMacro();
   bindEvents();
   window.setInterval(() => {
