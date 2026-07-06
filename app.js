@@ -785,7 +785,7 @@ function updateDeviceUi() {
   if (els.mpuText) {
     const imu = state.status.mpu6050 || {};
     els.mpuText.textContent = imu.valid
-      ? `MPU6050：A ${imu.ax.toFixed(2)} ${imu.ay.toFixed(2)} ${imu.az.toFixed(2)}g  G ${imu.gx.toFixed(0)} ${imu.gy.toFixed(0)} ${imu.gz.toFixed(0)} dps`
+      ? `MPU6050：${imu.tilt || "姿态已读"}，${imu.motion || "运动状态未知"}，${imu.rotation || "旋转状态未知"}；俯仰 ${Number(imu.pitch || 0).toFixed(0)}°，横滚 ${Number(imu.roll || 0).toFixed(0)}°`
       : "MPU6050：未检测到";
   }
   if (els.sensorState) {
@@ -1420,6 +1420,13 @@ async function demoApply(command, options = {}) {
       gx: Math.sin(phase * 1.7) * 18,
       gy: Math.cos(phase * 1.3) * 18,
       gz: Math.sin(phase * 0.7) * 8,
+      pitch: Math.sin(phase) * 12,
+      roll: Math.cos(phase * 0.9) * 12,
+      accelMag: 1.02,
+      gyroMag: 24,
+      tilt: "轻微倾斜",
+      motion: "轻微移动",
+      rotation: "缓慢旋转",
     };
     state.status.ir = { active: Math.sin(phase * 2.3) > 0.72, edges: Math.round((Math.sin(phase * 2.3) + 1) * 8), level: 1 };
     state.status.protocol = 1;
