@@ -1,10 +1,10 @@
-const CACHE_NAME = "esp32-p4-web-control-v11";
+const CACHE_NAME = "esp32-p4-web-control-v12";
 const APP_SHELL = [
   "./",
-  "./index.html?v=20260705-rgb-buzzer-fix",
-  "./styles.css?v=20260705-rgb-buzzer-fix",
-  "./app.js?v=20260705-rgb-buzzer-fix",
-  "./manifest.webmanifest?v=20260705-rgb-buzzer-fix",
+  "./index.html?v=20260706-swatch-active-fix",
+  "./styles.css?v=20260706-swatch-active-fix",
+  "./app.js?v=20260706-swatch-active-fix",
+  "./manifest.webmanifest?v=20260706-swatch-active-fix",
   "./icons/icon.svg",
 ];
 

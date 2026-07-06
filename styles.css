@@ -446,8 +446,7 @@ h2 {
 }
 
 .segmented button.active,
-.quick-row button.active,
-.swatch-button.active {
+.quick-row button.active {
   color: #fff;
   background: var(--primary);
   border-color: var(--primary);
@@ -472,6 +471,9 @@ h2 {
 .swatch-button.active {
   outline: 2px solid var(--text);
   outline-offset: 2px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--swatch, var(--primary)) 90%, #ffffff), var(--swatch, var(--primary)));
+  border-color: color-mix(in srgb, var(--swatch, var(--primary)) 70%, #18222e);
 }
 
 .swatch-button.white {
