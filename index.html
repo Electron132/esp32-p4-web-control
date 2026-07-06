@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#243445" />
+    <title>ESP32-P4 蓝牙控制台</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23243345'/%3E%3Ccircle cx='46' cy='46' r='8' fill='%2324d18d'/%3E%3Ctext x='13' y='38' font-family='Arial' font-size='18' font-weight='700' fill='white'%3EP4%3C/text%3E%3C/svg%3E" />
+    <link rel="manifest" href="./manifest.webmanifest?v=20260705-sensor-ui" />
+    <link rel="apple-touch-icon" href="./icons/icon.svg" />
+    <link rel="stylesheet" href="./styles.css?v=20260705-sensor-ui" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Web 蓝牙控制台</p>
+          <h1>ESP32-P4 外设控制台</h1>
+        </div>
+        <div class="topbar-actions">
+          <span id="supportChip" class="chip neutral">检查浏览器</span>
+          <button id="demoBtn" class="button secondary" type="button">演示模式</button>
+          <button id="compatBtn" class="button secondary" type="button">兼容扫描</button>
+          <button id="emergencyBtn" class="button emergency" type="button">急停</button>
+          <button id="connectBtn" class="button primary" type="button">连接板子</button>
+        </div>
+      </header>
+
+      <section class="dashboard">
+        <aside class="panel connection-panel">
+          <div class="panel-heading">
+            <h2>连接</h2>
+            <span id="connectionChip" class="chip idle">未连接</span>
+          </div>
+
+          <div class="device-visual" aria-label="Board status visual">
+            <div class="board">
+              <span class="pin pin-a"></span>
+              <span class="pin pin-b"></span>
+              <span class="pin pin-c"></span>
+              <span id="ledDot" class="led-dot"></span>
+              <span class="chip-core">P4</span>
+            </div>
+          </div>
+
+          <dl class="meta-list">
+            <div>
+              <dt>设备</dt>
+              <dd id="deviceName">等待连接</dd>
+            </div>
+            <div>
+              <dt>服务</dt>
+              <dd class="mono">7d2f...9001</dd>
+            </div>
+            <div>
+              <dt>协议</dt>
+              <dd id="protocolText" data-tone="neutral">未知</dd>
+            </div>
+            <div>
+              <dt>扫描</dt>
+              <dd id="scanModeText">服务过滤</dd>
+            </div>
+            <div>
+              <dt>同步</dt>
+              <dd id="syncModeText">未连接</dd>
+            </div>
+            <div>
+              <dt>回包</dt>
+              <dd id="freshnessText" data-tone="neutral">--</dd>
+            </div>
+            <div>
+              <dt>运行</dt>
+              <dd id="uptimeText">--</dd>
+            </div>
+            <div>
+              <dt>延迟</dt>
+              <dd id="latencyText">-- ms</dd>
+            </div>
+          </dl>
+
+          <label class="toggle-row">
+            <input id="autoRefreshToggle" type="checkbox" checked />
+            <span>自动刷新状态</span>
+          </label>
+          <label class="toggle-row">
+            <input id="autoReconnectToggle" type="checkbox" checked />
+            <span>自动重连</span>
+          </label>
+          <label class="toggle-row">
+            <input id="wakeLockToggle" type="checkbox" />
+            <span>保持唤醒</span>
+          </label>
+          <button id="refreshBtn" class="button secondary full" type="button">读取状态</button>
+          <button id="selfTestBtn" class="button showcase full" type="button" disabled>安全自检</button>
+          <button id="disconnectBtn" class="button ghost full" type="button" disabled>断开连接</button>
+
+          <details id="pinoutDetails" class="pinout-panel">
+            <summary>引脚速查</summary>
+            <dl>
+              <div><dt>RGB</dt><dd>R GPIO49，G GPIO51，B GPIO52，低电平点亮</dd></div>
+              <div><dt>蜂鸣器</dt><dd>GPIO35，低电平触发</dd></div>
+              <div><dt>舵机</dt><dd>GPIO29，50 Hz PWM</dd></div>
+              <div><dt>DHT11</dt><dd>GPIO48，单总线数据</dd></div>
+              <div><dt>HC-SR04</dt><dd>TRIG GPIO30，ECHO GPIO31</dd></div>
+              <div><dt>MPU6050</dt><dd>SDA GPIO7，SCL GPIO8</dd></div>
+              <div><dt>红外接收</dt><dd>OUT GPIO34</dd></div>
+            </dl>
+            <p>HC-SR04 Echo 必须分压到 3.3V；舵机建议独立供电并共地。</p>
+          </details>
+        </aside>
+
+        <section class="control-grid">
+          <article class="panel control-card">
+            <div class="panel-heading">
+              <h2>RGB 彩灯</h2>
+              <span id="ledState" class="chip idle">关闭</span>
+            </div>
+            <div class="segmented">
+              <button id="ledOnBtn" type="button">白光</button>
+              <button id="ledOffBtn" type="button">关闭</button>
+              <button id="ledToggleBtn" type="button">暖光</button>
+            </div>
+            <div class="swatch-row" aria-label="RGB color presets">
+              <button class="swatch-button" type="button" data-rgb="red" style="--swatch: #ef4444" aria-label="红色"></button>
+              <button class="swatch-button" type="button" data-rgb="green" style="--swatch: #22c55e" aria-label="绿色"></button>
+              <button class="swatch-button" type="button" data-rgb="blue" style="--swatch: #3b82f6" aria-label="蓝色"></button>
+              <button class="swatch-button white" type="button" data-rgb="white" style="--swatch: #f8fafc" aria-label="白色"></button>
+              <button class="swatch-button" type="button" data-rgb="yellow" style="--swatch: #facc15" aria-label="黄色"></button>
+              <button class="swatch-button" type="button" data-rgb="cyan" style="--swatch: #06b6d4" aria-label="青色"></button>
+              <button class="swatch-button" type="button" data-rgb="magenta" style="--swatch: #d946ef" aria-label="品红"></button>
+            </div>
+            <p class="hint">LEDRGB140C05：R/G/B 三路 PWM 控制，低电平点亮；白光和暖光都按 RGB 混色下发，固件已避开 LCD 背光 PWM 资源。</p>
+          </article>
+
+          <article class="panel control-card">
+            <div class="panel-heading">
+              <h2>蜂鸣器</h2>
+              <span id="buzzerState" class="chip idle">关闭</span>
+            </div>
+            <div class="segmented">
+              <button id="buzzerBeepBtn" type="button">短鸣</button>
+              <button id="buzzerOnBtn" type="button">长鸣</button>
+              <button id="buzzerOffBtn" type="button">关闭</button>
+            </div>
+            <p class="hint">低电平触发。急停会触发短鸣并把 RGB 置红，安全自检会短鸣确认。</p>
+          </article>
+
+          <article class="panel control-card">
+            <div class="panel-heading">
+              <h2>舵机</h2>
+              <span id="servoState" class="chip neutral">90°</span>
+            </div>
+            <label class="range-row">
+              <span>角度</span>
+              <input id="servoRange" type="range" min="0" max="180" step="1" value="90" />
+              <output id="servoOutput">90°</output>
+            </label>
+            <div class="quick-row">
+              <button data-servo="0" type="button">0°</button>
+              <button data-servo="45" type="button">45°</button>
+              <button data-servo="90" type="button">90°</button>
+              <button data-servo="135" type="button">135°</button>
+              <button data-servo="180" type="button">180°</button>
+            </div>
+          </article>
+
+          <article class="panel control-card sensor-card">
+            <div class="panel-heading">
+              <h2>传感器</h2>
+              <span id="sensorState" class="chip neutral">就绪</span>
+            </div>
+            <div class="telemetry-grid compact">
+              <div>
+                <span>测距</span>
+                <strong id="distanceText">--.- cm</strong>
+              </div>
+              <div>
+                <span>红外</span>
+                <strong id="irText">等待</strong>
+              </div>
+            </div>
+            <p id="mpuText" class="hint">MPU6050：未检测到</p>
+            <p class="hint">HC-SR04 Echo 请分压到 3.3V；MPU6050 与手势模块共用板载 I2C 总线。</p>
+          </article>
+
+          <article class="panel macro-card">
+            <div class="panel-heading">
+              <h2>动作编排</h2>
+              <span id="macroCount" class="chip neutral">0 步</span>
+            </div>
+            <div class="macro-actions">
+              <button id="recordBtn" class="button secondary" type="button">开始录制</button>
+              <button id="playMacroBtn" class="button primary" type="button">回放</button>
+              <button id="showcaseBtn" class="button showcase" type="button">展示</button>
+              <button id="exportMacroBtn" class="button secondary" type="button">导出</button>
+              <button id="importMacroBtn" class="button ghost" type="button">导入</button>
+              <button id="clearMacroBtn" class="button ghost" type="button">清空</button>
+            </div>
+            <input id="macroImportInput" class="visually-hidden" type="file" accept="application/json,.json" />
+            <ol id="macroList" class="macro-list"></ol>
+          </article>
+        </section>
+
+        <aside class="side-stack">
+          <section class="panel telemetry-panel">
+            <div class="panel-heading">
+              <h2>遥测</h2>
+              <div class="telemetry-actions">
+                <button id="exportTelemetryBtn" class="icon-button" type="button">CSV</button>
+                <span id="telemetryChip" class="chip neutral">待读取</span>
+              </div>
+            </div>
+            <div class="telemetry-grid">
+              <div>
+                <span>温度</span>
+                <strong id="temperatureText">--.- ℃</strong>
+              </div>
+              <div>
+                <span>湿度</span>
+                <strong id="humidityText">--.- %</strong>
+              </div>
+            </div>
+            <canvas id="telemetryCanvas" width="520" height="150" aria-label="Temperature and humidity trend"></canvas>
+          </section>
+
+          <section class="panel log-panel">
+            <div class="panel-heading">
+              <h2>事件日志</h2>
+              <div class="log-actions">
+                <button id="diagnosticsBtn" class="icon-button" type="button">诊断</button>
+                <button id="clearLogBtn" class="icon-button" type="button" aria-label="清空日志">清空</button>
+              </div>
+            </div>
+            <form id="commandForm" class="command-form">
+              <label for="commandInput">协议命令</label>
+              <div>
+                <input id="commandInput" class="command-input" type="text" value='{"cmd":"read"}' spellcheck="false" />
+                <button id="commandSendBtn" class="icon-button" type="submit">发送</button>
+              </div>
+              <div class="command-presets">
+                <button id="commandPresetRead" type="button" data-command-preset='{"cmd":"read"}'>读取</button>
+                <button id="commandPresetLed" type="button" data-command-preset='{"cmd":"rgb","color":"white"}'>白光</button>
+                <button id="commandPresetBuzzer" type="button" data-command-preset='{"cmd":"buzzer","value":"beep","durationMs":120}'>短鸣</button>
+                <button id="commandPresetServo" type="button" data-command-preset='{"cmd":"servo","angle":90}'>舵机</button>
+                <button id="commandPresetStop" type="button" data-command-preset='{"cmd":"read"}'>刷新</button>
+              </div>
+            </form>
+            <div id="logList" class="log-list" role="log" aria-live="polite"></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script src="./app.js?v=20260705-sensor-ui" type="module"></script>
+  </body>
+</html>

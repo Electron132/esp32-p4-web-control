@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#243445"/>
+  <rect x="112" y="138" width="288" height="214" rx="28" fill="#2c3e51" stroke="#7890a8" stroke-width="10"/>
+  <rect x="196" y="196" width="120" height="96" rx="18" fill="#101820"/>
+  <circle cx="360" cy="320" r="34" fill="#24d18d"/>
+  <circle cx="360" cy="320" r="54" fill="none" stroke="#24d18d" stroke-opacity=".28" stroke-width="16"/>
+  <g fill="#a7b5c4">
+    <rect x="140" y="164" width="20" height="20" rx="4"/>
+    <rect x="174" y="164" width="20" height="20" rx="4"/>
+    <rect x="208" y="164" width="20" height="20" rx="4"/>
+    <rect x="242" y="164" width="20" height="20" rx="4"/>
+  </g>
+  <text x="256" y="270" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="62" font-weight="800" fill="#e7edf5">P4</text>
+</svg>
